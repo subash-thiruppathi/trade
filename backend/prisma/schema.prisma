@@ -1,0 +1,277 @@
+// backend/prisma/brokerage.schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum OrderType {
+  MARKET
+  LIMIT
+  SL
+  SL_M
+}
+
+enum GTTType {
+  SINGLE
+  OCO
+}
+
+enum GTTStatus {
+  ACTIVE
+  TRIGGERED
+  CANCELLED
+}
+
+enum ProductType {
+  DELIVERY // CNC (Cash and Carry) - Results in Holdings
+  INTRADAY // MIS (Margin Intraday Squareoff) - Results in Positions
+  MARGIN   // MTF (Margin Trading Facility)
+}
+
+enum LedgerTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  MARGIN_BLOCK
+  MARGIN_RELEASE
+  BROKERAGE
+  STT           // Securities Transaction Tax
+  STAMP_DUTY
+  EXCHANGE_TXN_CHARGE
+  PROFIT_REALIZED
+  LOSS_REALIZED
+}
+
+enum OrderStatus {
+  TRIGGER_PENDING
+  OPEN
+  EXECUTED
+  CANCELLED
+  REJECTED
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  phone        String        @unique
+  password     String
+  kycStatus    KycStatus     @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  marginWallet MarginWallet?
+  holdings     Holding[]
+  positions    Position[]
+  orders           OrderBook[]
+  gttOrders        GTTOrder[]
+  mtfLedgers       MTFLedger[]
+  ledgerBook       LedgerBook[]
+  sipSubscriptions SipSubscription[]
+}
+
+model MarginWallet {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  
+  // Strict Decimal types for financial math
+  availableCash    Decimal  @default(0.00) @db.Decimal(18, 4) // Unencumbered cash
+  utilizedMargin   Decimal  @default(0.00) @db.Decimal(18, 4) // Cash blocked for open orders/positions
+  collateralMargin Decimal  @default(0.00) @db.Decimal(18, 4) // Margin received from pledging holdings
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Holding: Long-term asset delivery (Demat account)
+// Created/Updated when a DELIVERY order is successfully EXECUTED and settled.
+model Holding {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  
+  symbol         String   // e.g., RELIANCE, TCS
+  quantity       Decimal  @db.Decimal(18, 4) // Number of shares owned
+  averagePrice   Decimal  @db.Decimal(18, 4) // Average acquisition cost
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, symbol])
+}
+
+// Position: Intraday trades
+// Created/Updated when an INTRADAY order is EXECUTED. Must be squared off before market close.
+model Position {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  
+  symbol         String   // e.g., RELIANCE, TCS
+  quantity       Decimal  @db.Decimal(18, 4) // Positive for long, negative for short
+  averagePrice   Decimal  @db.Decimal(18, 4) // Average entry price
+  realizedPnl    Decimal  @default(0.00) @db.Decimal(18, 4) // Profit/Loss booked today
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, symbol])
+}
+
+// OrderBook: Immutable record of every order placed.
+model OrderBook {
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  
+  symbol         String
+  side           OrderSide   // BUY or SELL
+  orderType      OrderType
+  productType    ProductType
+  
+  requestedQty   Decimal     @db.Decimal(18, 4)
+  filledQty      Decimal     @default(0.00) @db.Decimal(18, 4)
+  
+  price          Decimal?    @db.Decimal(18, 4) // Limit price
+  triggerPrice   Decimal?    @db.Decimal(18, 4) // Stop-loss trigger price
+  averagePrice   Decimal?    @db.Decimal(18, 4) // Executed price
+  
+  status         OrderStatus @default(OPEN)
+  rejectionReason String?
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+// GTTOrder: Good Till Triggered logic. Persistent offline trigger.
+// Once triggered, it automatically executes a creation of a standard OrderBook element.
+model GTTOrder {
+  id                    String      @id @default(uuid())
+  userId                String
+  user                  User        @relation(fields: [userId], references: [id])
+  
+  symbol                String
+  triggerType           GTTType     // SINGLE or OCO (One Cancels the Other)
+  side                  OrderSide
+  productType           ProductType
+  
+  // Single Trigger Data
+  triggerPrice          Decimal?    @db.Decimal(18, 4)
+  limitPrice            Decimal?    @db.Decimal(18, 4) // What price to place the order at when triggered
+  
+  // OCO Trigger Data (for Target + StopLoss brackets)
+  stopLossTriggerPrice  Decimal?    @db.Decimal(18, 4)
+  stopLossLimitPrice    Decimal?    @db.Decimal(18, 4)
+  targetTriggerPrice    Decimal?    @db.Decimal(18, 4)
+  targetLimitPrice      Decimal?    @db.Decimal(18, 4)
+  
+  quantity              Decimal     @db.Decimal(18, 4)
+  status                GTTStatus   @default(ACTIVE)
+  
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+// MTFLedger: Margin Trading Facility
+// Tracks funds borrowed from the broker to take delivery of stocks.
+model MTFLedger {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  
+  orderId          String   @unique
+  symbol           String
+  fundedAmount     Decimal  @db.Decimal(18, 4) // Amount loaned by broker
+  interestAccrued  Decimal  @default(0.00) @db.Decimal(18, 4) // Accumulated interest
+  
+  status           String   @default("ACTIVE") // ACTIVE or SQUARED_OFF
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Immutable Ledger tracking every single financial movement
+// Similar to Tier-1 backend ledgers. 
+model LedgerBook {
+  id               String                 @id @default(uuid())
+  userId           String
+  user             User                   @relation(fields: [userId], references: [id])
+  
+  transactionType  LedgerTransactionType
+  amount           Decimal                @db.Decimal(18, 4)
+  balanceAfter     Decimal                @db.Decimal(18, 4) // Rolling balance for fast reads
+  
+  referenceId      String?                // e.g. orderId or transactionHash
+  description      String?                // e.g. "Brokerage for Order 1234"
+  
+  timestamp        DateTime               @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// PHASE 5: MUTUAL FUNDS & SIP INFRASTRUCTURE
+// ----------------------------------------------------------------------------
+
+model MutualFund {
+  id               String            @id @default(uuid())
+  schemeCode       String            @unique
+  schemeName       String            
+  amc              String            // Asset Management Company (e.g. HDFC, SBI)
+  nav              Decimal           @db.Decimal(10, 4) // Net Asset Value
+  aum              Decimal           // Asset Under Management
+  category         String            // e.g. Equity, Debt, Hybrid
+  threeYearReturn  Decimal           // Annualized returns percentage
+  oneYearReturn    Decimal
+  
+  subscriptions    SipSubscription[]
+  
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+enum SipFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model SipSubscription {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  
+  mutualFundId     String
+  mutualFund       MutualFund      @relation(fields: [mutualFundId], references: [id])
+  
+  amount           Decimal         @db.Decimal(18, 4)
+  frequency        SipFrequency
+  
+  nextExecutionDate DateTime       // Controlled by NestJS @Cron service
+  
+  status           String          @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}

@@ -1,0 +1,1 @@
+const yahooFinance = require('yahoo-finance2').default; const test = async () => { try { const options = await yahooFinance.options('RELIANCE.NS'); console.log(JSON.stringify(options, null, 2)); } catch(e) { console.error(e); } }; test();

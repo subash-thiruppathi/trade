@@ -1,0 +1,136 @@
+// backend/prisma/brokerage.schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP_LOSS
+}
+
+enum ProductType {
+  DELIVERY // CNC (Cash and Carry) - Results in Holdings
+  INTRADAY // MIS (Margin Intraday Squareoff) - Results in Positions
+  MARGIN   // MTF (Margin Trading Facility)
+}
+
+enum OrderStatus {
+  OPEN
+  EXECUTED
+  CANCELLED
+  REJECTED
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  phone        String        @unique
+  kycStatus    KycStatus     @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  marginWallet MarginWallet?
+  holdings     Holding[]
+  positions    Position[]
+  orders       OrderBook[]
+}
+
+model MarginWallet {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  
+  // Strict Decimal types for financial math
+  availableCash    Decimal  @default(0.00) @db.Decimal(18, 4) // Unencumbered cash
+  utilizedMargin   Decimal  @default(0.00) @db.Decimal(18, 4) // Cash blocked for open orders/positions
+  collateralMargin Decimal  @default(0.00) @db.Decimal(18, 4) // Margin received from pledging holdings
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Holding: Long-term asset delivery (Demat account)
+// Created/Updated when a DELIVERY order is successfully EXECUTED and settled.
+model Holding {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  
+  symbol         String   // e.g., RELIANCE, TCS
+  quantity       Decimal  @db.Decimal(18, 4) // Number of shares owned
+  averagePrice   Decimal  @db.Decimal(18, 4) // Average acquisition cost
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, symbol])
+}
+
+// Position: Intraday trades
+// Created/Updated when an INTRADAY order is EXECUTED. Must be squared off before market close.
+model Position {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  
+  symbol         String   // e.g., RELIANCE, TCS
+  quantity       Decimal  @db.Decimal(18, 4) // Positive for long, negative for short
+  averagePrice   Decimal  @db.Decimal(18, 4) // Average entry price
+  realizedPnl    Decimal  @default(0.00) @db.Decimal(18, 4) // Profit/Loss booked today
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, symbol])
+}
+
+// OrderBook: Immutable record of every order placed.
+model OrderBook {
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  
+  symbol         String
+  side           OrderSide   // BUY or SELL
+  orderType      OrderType
+  productType    ProductType
+  
+  requestedQty   Decimal     @db.Decimal(18, 4)
+  filledQty      Decimal     @default(0.00) @db.Decimal(18, 4)
+  
+  price          Decimal?    @db.Decimal(18, 4) // Limit price
+  triggerPrice   Decimal?    @db.Decimal(18, 4) // Stop-loss trigger price
+  averagePrice   Decimal?    @db.Decimal(18, 4) // Executed price
+  
+  status         OrderStatus @default(OPEN)
+  rejectionReason String?
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}

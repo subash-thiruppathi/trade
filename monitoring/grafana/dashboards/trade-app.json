@@ -1,0 +1,307 @@
+{
+    "id": null,
+    "uid": "trade-app-overview",
+    "title": "Trade App Overview",
+    "tags": [
+        "trade",
+        "nestjs",
+        "kafka"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "panels": [
+        {
+            "id": 1,
+            "type": "timeseries",
+            "title": "HTTP Request Rate (req/s)",
+            "gridPos": {
+                "x": 0,
+                "y": 0,
+                "w": 12,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(http_request_duration_seconds_count[1m])) by (method, route)",
+                    "legendFormat": "{{method}} {{route}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 2,
+            "type": "timeseries",
+            "title": "HTTP p95 Latency (seconds)",
+            "gridPos": {
+                "x": 12,
+                "y": 0,
+                "w": 12,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, route))",
+                    "legendFormat": "p95 {{route}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 3,
+            "type": "timeseries",
+            "title": "Orders Placed (buy vs sell)",
+            "gridPos": {
+                "x": 0,
+                "y": 8,
+                "w": 8,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "rate(trade_orders_total[1m])",
+                    "legendFormat": "{{side}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 4,
+            "type": "timeseries",
+            "title": "Order Errors Rate",
+            "gridPos": {
+                "x": 8,
+                "y": 8,
+                "w": 8,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "rate(trade_order_errors_total[1m])",
+                    "legendFormat": "{{side}} / {{reason}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {
+                        "fixedColor": "red",
+                        "mode": "fixed"
+                    }
+                }
+            }
+        },
+        {
+            "id": 5,
+            "type": "timeseries",
+            "title": "Kafka Messages Consumed (rate)",
+            "gridPos": {
+                "x": 16,
+                "y": 8,
+                "w": 8,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "rate(kafka_messages_consumed_total[1m])",
+                    "legendFormat": "{{topic}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Node.js Heap Used (bytes)",
+            "gridPos": {
+                "x": 0,
+                "y": 16,
+                "w": 12,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "nodejs_heap_size_used_bytes",
+                    "legendFormat": "Heap Used",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "bytes",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 7,
+            "type": "timeseries",
+            "title": "Node.js CPU Usage",
+            "gridPos": {
+                "x": 12,
+                "y": 16,
+                "w": 12,
+                "h": 8
+            },
+            "targets": [
+                {
+                    "expr": "rate(process_cpu_seconds_total[1m])",
+                    "legendFormat": "CPU (cores)",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            }
+        },
+        {
+            "id": 8,
+            "type": "stat",
+            "title": "Total Orders (all time)",
+            "gridPos": {
+                "x": 0,
+                "y": 24,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(trade_orders_total)",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 9,
+            "type": "stat",
+            "title": "Total Errors (all time)",
+            "gridPos": {
+                "x": 6,
+                "y": 24,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(trade_order_errors_total)",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 1
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 10,
+            "type": "stat",
+            "title": "Kafka Messages (all time)",
+            "gridPos": {
+                "x": 12,
+                "y": 24,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "sum(kafka_messages_consumed_total)",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 11,
+            "type": "stat",
+            "title": "Uptime (seconds)",
+            "gridPos": {
+                "x": 18,
+                "y": 24,
+                "w": 6,
+                "h": 4
+            },
+            "targets": [
+                {
+                    "expr": "process_uptime_seconds",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            }
+        }
+    ]
+}
