@@ -32,7 +32,7 @@ export class SipEngineService implements OnModuleInit {
 
     // Runs every day at 9 AM to process SIPs
     // For sandbox testing, we will run it every 1 minute so the user sees it work instantly!
-    @Cron(CronExpression.EVERY_MINUTE)
+    @Cron(CronExpression.EVERY_30_MINUTES)
     async executeScheduledSips() {
         this.logger.log('Sweeping for pending SIP Subscriptions...');
 

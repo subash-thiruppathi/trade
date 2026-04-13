@@ -3,22 +3,32 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { MetricsInterceptor } from './modules/metrics/metrics.interceptor';
 import { MetricsService } from './modules/metrics/metrics.service';
+import * as fs from 'fs'; // Required to read the certificates
+import * as path from 'path';
 
 async function bootstrap() {
-  // Create hybrid app: HTTP server + Kafka microservice consumer
   const app = await NestFactory.create(AppModule);
 
-  // Register HTTP duration interceptor globally
   const metricsService = app.get(MetricsService);
   app.useGlobalInterceptors(new MetricsInterceptor(metricsService));
 
-  // Attach Kafka microservice (consumer side — listens to OMS topics)
+  // Determine the path to certificates (Render uses /etc/secrets)
+  const isCloud = process.env.RENDER === 'true';
+  const certPath = isCloud ? '/etc/secrets' : path.join(process.cwd(), 'certs');
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
       client: {
         clientId: 'oms-consumer',
-        brokers: [process.env.KAFKA_BROKER_URL || 'localhost:9092'],
+        brokers: [process.env.KAFKA_BROKER_URL],
+        // SSL Configuration for Aiven
+        ssl: {
+          rejectUnauthorized: true,
+          ca: [fs.readFileSync(path.join(certPath, 'ca.pem'), 'utf-8')],
+          key: fs.readFileSync(path.join(certPath, 'service.key'), 'utf-8'),
+          cert: fs.readFileSync(path.join(certPath, 'service.cert'), 'utf-8'),
+        },
       },
       consumer: {
         groupId: 'oms-consumer-group',
@@ -28,14 +38,34 @@ async function bootstrap() {
   });
 
   app.enableCors();
-
-  // Start microservice consumers BEFORE HTTP server
   await app.startAllMicroservices();
-  await app.listen(3001);
 
-  console.log('🚀 Backend is running on http://localhost:3001');
-  console.log('📨 Kafka consumer connected — OMS pipeline is LIVE');
-  console.log('📊 Prometheus metrics available at http://localhost:3001/metrics');
+  // Use Render's PORT environment variable
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
+
+  // src/main.ts - Add these logs right before app.connectMicroservice
+  // const isCloud = process.env.RENDER === 'true';
+  // const certPath = isCloud ? '/etc/secrets' : path.join(process.cwd(), 'certs');
+
+  console.log('🔍 Debugging Kafka Connection:');
+  console.log('Path:', certPath);
+  console.log('Broker:', process.env.KAFKA_BROKER_URL);
+
+  try {
+    const ca = fs.readFileSync(path.join(certPath, 'ca.pem'), 'utf-8');
+    const key = fs.readFileSync(path.join(certPath, 'service.key'), 'utf-8');
+    const cert = fs.readFileSync(path.join(certPath, 'service.cert'), 'utf-8');
+
+    console.log('✅ Certs found. CA Length:', ca.length);
+    console.log('✅ Key found. Key Length:', key.length);
+    console.log('✅ Cert found. Cert Length:', cert.length);
+  } catch (err) {
+    console.error('❌ CRITICAL: Could not read cert files!', err.message);
+  }
+
+  console.log(`🚀 Backend is running on port ${port}`);
+  console.log('📨 Kafka connected via SSL (Aiven Cloud)');
 }
 
 bootstrap();
