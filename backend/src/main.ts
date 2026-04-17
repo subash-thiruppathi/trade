@@ -37,7 +37,14 @@ async function bootstrap() {
     },
   });
 
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'https://trade-ntxsdw8cl-subash-thiruppathys-projects.vercel.app', // Your actual Vercel URL
+      'http://localhost:3001',               // For local testing
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
   await app.startAllMicroservices();
 
   // Use Render's PORT environment variable
