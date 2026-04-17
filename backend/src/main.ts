@@ -42,7 +42,7 @@ async function bootstrap() {
       'https://trade-drab-five.vercel.app',                           // 🟢 Add this (Main Production)
       'https://trade-ntxsdw8cl-subash-thiruppathys-projects.vercel.app', // (Specific Deployment)
       'http://localhost:3000',                                        // (Local Frontend usually runs on 3000)
-      'http://localhost:3001',                                        // (Your local backend port)
+      'http://localhost:3002',                                        // (Your local backend port)
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // 🟢 Added OPTIONS
     credentials: true,

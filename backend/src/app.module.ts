@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { OmsModule } from './modules/oms/oms.module';
 import { MarketDataModule } from './modules/market-data/market-data.module';
@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { FnoModule } from './modules/fno/fno.module';
 import { MutualFundsModule } from './modules/mutual-funds/mutual-funds.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
+import { LoggerMiddleware } from './modules/metrics/logger.middleware';
 
 @Module({
   imports: [
@@ -20,4 +21,8 @@ import { MetricsModule } from './modules/metrics/metrics.module';
     MutualFundsModule,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}

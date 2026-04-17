@@ -28,7 +28,7 @@
             },
             "targets": [
                 {
-                    "expr": "sum(rate(http_request_duration_seconds_count[1m])) by (method, route)",
+                    "expr": "sum(rate(http_request_duration_seconds_count[$__rate_interval])) by (method, route)",
                     "legendFormat": "{{method}} {{route}}",
                     "refId": "A"
                 }
@@ -54,7 +54,7 @@
             },
             "targets": [
                 {
-                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, route))",
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[$__rate_interval])) by (le, route))",
                     "legendFormat": "p95 {{route}}",
                     "refId": "A"
                 }
@@ -80,7 +80,7 @@
             },
             "targets": [
                 {
-                    "expr": "rate(trade_orders_total[1m])",
+                    "expr": "rate(trade_orders_total[$__rate_interval])",
                     "legendFormat": "{{side}}",
                     "refId": "A"
                 }
@@ -106,7 +106,7 @@
             },
             "targets": [
                 {
-                    "expr": "rate(trade_order_errors_total[1m])",
+                    "expr": "rate(trade_order_errors_total[$__rate_interval])",
                     "legendFormat": "{{side}} / {{reason}}",
                     "refId": "A"
                 }
@@ -133,7 +133,7 @@
             },
             "targets": [
                 {
-                    "expr": "rate(kafka_messages_consumed_total[1m])",
+                    "expr": "rate(kafka_messages_consumed_total[$__rate_interval])",
                     "legendFormat": "{{topic}}",
                     "refId": "A"
                 }
@@ -185,7 +185,7 @@
             },
             "targets": [
                 {
-                    "expr": "rate(process_cpu_seconds_total[1m])",
+                    "expr": "rate(process_cpu_seconds_total[$__rate_interval])",
                     "legendFormat": "CPU (cores)",
                     "refId": "A"
                 }

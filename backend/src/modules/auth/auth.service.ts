@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private jwtService: JwtService) {}
+  constructor(private jwtService: JwtService) { }
 
   async register(data: any) {
     try {
@@ -38,7 +38,7 @@ export class AuthService {
         await tx.marginWallet.create({
           data: {
             userId: newUser.id,
-            availableCash: 0,
+            availableCash: 100000,
             utilizedMargin: 0,
             collateralMargin: 0,
           },
