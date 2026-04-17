@@ -39,10 +39,12 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'https://trade-ntxsdw8cl-subash-thiruppathys-projects.vercel.app', // Your actual Vercel URL
-      'http://localhost:3001',               // For local testing
+      'https://trade-drab-five.vercel.app',                           // 🟢 Add this (Main Production)
+      'https://trade-ntxsdw8cl-subash-thiruppathys-projects.vercel.app', // (Specific Deployment)
+      'http://localhost:3000',                                        // (Local Frontend usually runs on 3000)
+      'http://localhost:3001',                                        // (Your local backend port)
     ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // 🟢 Added OPTIONS
     credentials: true,
   });
   await app.startAllMicroservices();
