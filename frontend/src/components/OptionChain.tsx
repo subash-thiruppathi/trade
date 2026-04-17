@@ -35,7 +35,7 @@ export default function OptionChain({ symbol }: OptionChainProps) {
     useEffect(() => {
         const fetchChain = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/fno/option-chain/${symbol}?strikes=10&expiryDays=7`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/fno/option-chain/${symbol}?strikes=10&expiryDays=7`);
                 const json = await res.json();
                 if (json.status === 'success') {
                     setData(json.data.strikes);

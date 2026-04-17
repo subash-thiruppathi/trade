@@ -17,7 +17,7 @@ export default function HoldingsTable({ userId }: { userId: string }) {
     useEffect(() => {
         const fetchHoldings = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/portfolio/${userId}/holdings`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/portfolio/${userId}/holdings`);
                 const data = await res.json();
                 const parsed = data.map((h: any) => ({
                     ...h,
@@ -37,7 +37,7 @@ export default function HoldingsTable({ userId }: { userId: string }) {
 
     useEffect(() => {
         if (holdings.length === 0) return;
-        const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001/market');
+        const socket = io(process.env.NEXT_PUBLIC_WS_URL || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/market`);
 
         socket.on('connect', () => {
             holdings.forEach(h => socket.emit('subscribe', h.symbol));

@@ -24,7 +24,7 @@ export default function LedgerTable({ activeUserId, availableMargin }: LedgerTab
     useEffect(() => {
         const fetchLedger = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/portfolio/${activeUserId}/ledger`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/portfolio/${activeUserId}/ledger`);
                 const data = await res.json();
                 setLedger(data);
             } catch (err) {

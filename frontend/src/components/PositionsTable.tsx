@@ -29,7 +29,7 @@ export default function PositionsTable({ userId }: { userId: string }) {
   useEffect(() => {
     const fetchPositions = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/portfolio/${userId}/positions`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/portfolio/${userId}/positions`);
         const data = await res.json();
         const parsedPositions = data.map((p: any) => ({
           ...p,
@@ -49,7 +49,7 @@ export default function PositionsTable({ userId }: { userId: string }) {
   }, [userId]);
 
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001/market');
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/market`);
 
     socket.on('connect', () => {
       // Subscribe to all symbols we have open positions in

@@ -41,7 +41,7 @@ export default function MarketWatch({ onSelectSymbol, selectedSymbol }: MarketWa
   const currentSymbols = WATCHLISTS[activeTab];
 
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001/market');
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/market`);
     socketRef.current = socket;
 
     socket.on('connect', () => {

@@ -46,8 +46,8 @@ export default function MutualFundsPage() {
     const fetchData = async (uid: string) => {
         try {
             const [fundsRes, sipsRes] = await Promise.all([
-                fetch('http://localhost:3001/mutual-funds/explore'),
-                fetch(`http://localhost:3001/mutual-funds/${uid}/sips`)
+                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/mutual-funds/explore`),
+                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/mutual-funds/${uid}/sips`)
             ]);
             const fundsData = await fundsRes.json();
             const sipsData = await sipsRes.json();

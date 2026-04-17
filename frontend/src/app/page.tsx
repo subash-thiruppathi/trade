@@ -51,7 +51,7 @@ export default function Home() {
 
     const fetchMargin = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/portfolio/${activeUserId}/margin`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/portfolio/${activeUserId}/margin`);
         const data = await res.json();
         setMargin(parseFloat(data.availableCash || 0));
       } catch (err) {

@@ -17,7 +17,7 @@ export default function LiveTicker() {
 
   useEffect(() => {
     // Connect to NestJS WebSocket Gateway
-    const socket: Socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001');
+    const socket: Socket = io(process.env.NEXT_PUBLIC_WS_URL || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}`);
 
     socket.on('price-update', (data: PriceUpdate) => {
       setPrices((prev) => {

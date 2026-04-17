@@ -21,7 +21,7 @@ export default function OrdersTable({ userId }: { userId: string }) {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const res = await fetch(`http://localhost:3001/portfolio/${userId}/orders`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/portfolio/${userId}/orders`);
                 const data = await res.json();
                 const parsed = data.map((o: any) => ({
                     ...o,

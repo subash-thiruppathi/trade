@@ -106,7 +106,7 @@ export default function TradingViewChart({ symbol, ltp }: { symbol: string, ltp?
 
     // Independent WebSocket listener for this active symbol
     useEffect(() => {
-        const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001/market');
+        const socket = io(process.env.NEXT_PUBLIC_WS_URL || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/market`);
         socket.on('connect', () => {
             socket.emit('subscribe', symbol);
         });
